@@ -27,15 +27,11 @@ class InsuranceBotFlow(Flow):
             chatbot_instance = chatbot_crew()
             result = chatbot_instance.crew().kickoff(inputs={"user_input": user_input})
             
-            # Ensure result is a dict; if not, parse it
             if not isinstance(result, dict):
                 user_input_lower = user_input.lower()
-                # Check for "list all claims"
                 if "list" in user_input_lower and "claims" in user_input_lower:
                     result = {"operation": "read", "table": "claims", "query": user_input}
-                # Check for "details of policy number 'XXX'"
                 elif "details" in user_input_lower and "policy number" in user_input_lower:
-                    # Extract policy number using regex
                     match = re.search(r"'([^']+)'", user_input)
                     policy_number = match.group(1) if match else None
                     if policy_number:
@@ -58,7 +54,6 @@ class InsuranceBotFlow(Flow):
         return None
 
     def _perform_db_operation(self, extracted_data):
-        """Helper method to interact with SQLite database."""
         operation = extracted_data.get("operation", "read")
         table = extracted_data.get("table", "claims")
         policy_number = extracted_data.get("policy_number")
@@ -68,9 +63,9 @@ class InsuranceBotFlow(Flow):
             cursor = conn.cursor()
             
             if operation == "read" and table == "claims":
-                if policy_number:  # Query for specific policy number
+                if policy_number:
                     cursor.execute("SELECT * FROM claims WHERE policy_number = ?", (policy_number,))
-                else:  # List all claims
+                else:
                     cursor.execute("SELECT * FROM claims")
                 
                 claims = cursor.fetchall()
