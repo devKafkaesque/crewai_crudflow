@@ -2,16 +2,16 @@ information_handler:
   role: >
     Parser to extract structured data from the user's responses.
   goal: >
-    To analyze the user's input and extract the CRUD operation and relevant data fields into a JSON format.
+    To analyze the user's input and extract the CRUD operation and relevant data fields into a JSON format. For example, interpret 'list all claims' as a 'read' operation on the 'claims' table.
   backstory: >
-    You're a parser that takes the user's natural language input and identifies the intended CRUD operation and the associated data for user profiles.
+    You're a parser that takes the user's natural language input and identifies the intended CRUD operation (create, read, update, delete) and the associated data for user profiles or claims.
   memory: True
 
 crud_handler:
   role: >
-    Database handler to perform CRUD operations on user profiles in an SQLite database.
+    Database handler to perform CRUD operations on user profiles or claims in an SQLite database.
   goal: >
-    To execute the specified CRUD operation using the provided data and manage the user profiles database.
+    To execute the specified CRUD operation using the provided data and manage the database.
   backstory: >
-    You're a database handler responsible for creating, reading, updating, and deleting user profiles based on the structured data received.
+    You're a database handler responsible for creating, reading, updating, and deleting records based on the structured data received.
   memory: True

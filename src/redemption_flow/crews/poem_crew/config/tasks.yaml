@@ -1,13 +1,9 @@
 extract_data:
-  agent: information_handler
-  description: >
-    Parse the user's responses to extract the CRUD operation and relevant data into a structured JSON format.
-  output: >
-    JSON object containing the operation and data.
+  description: "Extract relevant data from the user input."
+  expected_output: "A JSON object containing the extracted data."
+  agent: "information_handler"
 
 perform_crud:
-  agent: crud_handler
-  description: >
-    Perform the specified CRUD operation on the database using the provided JSON data.
-  output: >
-    Result of the database operation.
+  description: "Perform CRUD operations based on the extracted data."
+  expected_output: "Result of the database operation."
+  agent: "crud_handler"

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-from crewai.flow import Flow, start, listen, router
-from numpy import outer
+import sqlite3
+from crewai.flow import Flow, start, listen
 from redemption_flow.crews.poem_crew.chatbot_crew import chatbot_crew
+import re
 
 class InsuranceBotFlow(Flow):
     insurance_terms = [
@@ -9,11 +10,12 @@ class InsuranceBotFlow(Flow):
         'beneficiary', 'endorsement', 'exclusion', 'underwriting',
         'adjuster', 'agent', 'broker', 'insurer', 'insured'
     ]
+
     @start()
-    def user_input_from_chatbot(self, inputs):
-        user_input = inputs["user_input"]
-        if any(term in user_input.lower() for term in self.insurance_terms):
-            return user_input
+    def user_input_from_chatbot(self):
+        print(self.state)
+        if any(term in self.state['user_input'].lower() for term in self.insurance_terms):
+            return self.state['user_input']
         else:
             print("I'm sorry, I can only help with insurance-related queries.")
             return None
@@ -22,7 +24,26 @@ class InsuranceBotFlow(Flow):
     def extract_data(self, user_input):
         if user_input is not None:
             print("Extracting Data")
-            result = (chatbot_crew.crew().kickoff(inputs={"user_input": user_input}))
+            chatbot_instance = chatbot_crew()
+            result = chatbot_instance.crew().kickoff(inputs={"user_input": user_input})
+            
+            # Ensure result is a dict; if not, parse it
+            if not isinstance(result, dict):
+                user_input_lower = user_input.lower()
+                # Check for "list all claims"
+                if "list" in user_input_lower and "claims" in user_input_lower:
+                    result = {"operation": "read", "table": "claims", "query": user_input}
+                # Check for "details of policy number 'XXX'"
+                elif "details" in user_input_lower and "policy number" in user_input_lower:
+                    # Extract policy number using regex
+                    match = re.search(r"'([^']+)'", user_input)
+                    policy_number = match.group(1) if match else None
+                    if policy_number:
+                        result = {"operation": "read", "table": "claims", "policy_number": policy_number, "query": user_input}
+                    else:
+                        result = {"operation": "unknown", "query": user_input}
+                else:
+                    result = {"operation": "unknown", "query": user_input}
             print("Data Extracted:", result)
             return result
         return None
@@ -31,17 +52,48 @@ class InsuranceBotFlow(Flow):
     def crud_operator(self, extracted_data):
         if extracted_data is not None:
             print("Performing CRUD operations on the extracted data...")
-            task = chatbot_crew.perform_crud()
-            agent = chatbot_crew.crud_handler()
-            result = agent.execute_task(task, inputs={"extracted_data": extracted_data})
+            result = self._perform_db_operation(extracted_data)
             print("CRUD operations performed:", result)
             return result
         return None
 
-if __name__ == "__main__":
+    def _perform_db_operation(self, extracted_data):
+        """Helper method to interact with SQLite database."""
+        operation = extracted_data.get("operation", "read")
+        table = extracted_data.get("table", "claims")
+        policy_number = extracted_data.get("policy_number")
+        
+        try:
+            conn = sqlite3.connect("insurance.db")
+            cursor = conn.cursor()
+            
+            if operation == "read" and table == "claims":
+                if policy_number:  # Query for specific policy number
+                    cursor.execute("SELECT * FROM claims WHERE policy_number = ?", (policy_number,))
+                else:  # List all claims
+                    cursor.execute("SELECT * FROM claims")
+                
+                claims = cursor.fetchall()
+                if claims:
+                    return {"status": "success", "claims": [dict(zip(["id", "policy_number", "claim_amount", "claim_date", "status"], claim)) for claim in claims]}
+                else:
+                    return {"status": "success", "claims": [], "message": f"No claims found for policy number '{policy_number}'" if policy_number else "No claims found."}
+            else:
+                return {"status": "error", "message": f"Unsupported operation: {operation}"}
+                
+        except sqlite3.Error as e:
+            return {"status": "error", "message": str(e)}
+        finally:
+            if conn:
+                conn.close()
+
+def kickoff():
     while True:
         user_input = input("Enter your input: ")
         if user_input.lower() == "exit":
             break
         flow = InsuranceBotFlow()
         flow.kickoff(inputs={"user_input": user_input})
+
+if __name__ == "__main__":
+    kickoff()

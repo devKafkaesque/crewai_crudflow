@@ -1,10 +1,8 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai_tools import SerperDevTool
-
 import os
 from crewai import LLM
-
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -14,8 +12,8 @@ class chatbot_crew:
     tasks_config = "config/tasks.yaml"
 
     llm = LLM(
-        model = os.getenv("model"),
-        api_key = os.getenv("OPENAI_API_KEY")
+        model=os.getenv("model"),
+        api_key=os.getenv("OPENAI_API_KEY")
     )
 
     SearchTool = SerperDevTool()
@@ -34,14 +32,20 @@ class chatbot_crew:
 
     @task
     def extract_data(self) -> Task:
+        task_config = self.tasks_config["extract_data"]
         return Task(
-            config=self.tasks_config["extract_data"],
+            description=task_config["description"],
+            expected_output=task_config["expected_output"],
+            agent=self.information_handler()
         )
     
     @task
     def perform_crud(self) -> Task:
+        task_config = self.tasks_config["perform_crud"]
         return Task(
-            config=self.tasks_config["perform_crud"],
+            description=task_config["description"],
+            expected_output=task_config["expected_output"],
+            agent=self.crud_handler()
         )
 
     @crew
