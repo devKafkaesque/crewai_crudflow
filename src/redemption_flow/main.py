@@ -31,18 +31,38 @@ class InsuranceBotFlow(Flow):
                 user_input_lower = user_input.lower()
                 if "list" in user_input_lower and "claims" in user_input_lower:
                     result = {"operation": "read", "table": "claims", "query": user_input}
-                elif "details" in user_input_lower and "policy number" in user_input_lower:
-                    match = re.search(r"'([^']+)'", user_input)
-                    policy_number = match.group(1) if match else None
+                elif ("check" in user_input_lower or "details" in user_input_lower) and "policy number" in user_input_lower:
+                    match = re.search(r"POL\d+", user_input)
+                    policy_number = match.group(0) if match else None
                     if policy_number:
                         result = {"operation": "read", "table": "claims", "policy_number": policy_number, "query": user_input}
                     else:
+                        result = {"operation": "unknown", "query": user_input}
+                # Add recognition for create operations
+                elif "create" in user_input_lower or "new" in user_input_lower or "add" in user_input_lower:
+                    try:
+                        # Extract the JSON-like data from the input
+                        import ast
+                        match = re.search(r'\{.*\}', user_input)
+                        if match:
+                            claim_data = ast.literal_eval(match.group(0))
+                            result = {
+                                "operation": "create", 
+                                "table": "claims", 
+                                "data": claim_data,
+                                "query": user_input
+                            }
+                        else:
+                            result = {"operation": "unknown", "query": user_input}
+                    except Exception as e:
+                        print(f"Error parsing claim data: {e}")
                         result = {"operation": "unknown", "query": user_input}
                 else:
                     result = {"operation": "unknown", "query": user_input}
             print("Data Extracted:", result)
             return result
         return None
+
 
     @listen(extract_data)
     def crud_operator(self, extracted_data):
@@ -73,6 +93,27 @@ class InsuranceBotFlow(Flow):
                     return {"status": "success", "claims": [dict(zip(["id", "policy_number", "claim_amount", "claim_date", "status"], claim)) for claim in claims]}
                 else:
                     return {"status": "success", "claims": [], "message": f"No claims found for policy number '{policy_number}'" if policy_number else "No claims found."}
+            
+            elif operation == "create" and table == "claims":
+                data = extracted_data.get("data", {})
+                
+                required_fields = ["policy_number", "claim_amount", "claim_date", "status"]
+                if not all(field in data for field in required_fields):
+                    return {"status": "error", "message": "Missing required fields for claim creation"}
+                
+                cursor.execute(
+                    "INSERT INTO claims (policy_number, claim_amount, claim_date, status) VALUES (?, ?, ?, ?)",
+                    (data["policy_number"], data["claim_amount"], data["claim_date"], data["status"])
+                )
+                
+                conn.commit()
+                new_id = cursor.lastrowid
+                
+                return {
+                    "status": "success", 
+                    "message": f"Claim created successfully with ID: {new_id}",
+                    "claim_id": new_id
+                }
             else:
                 return {"status": "error", "message": f"Unsupported operation: {operation}"}
                 
