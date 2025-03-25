@@ -38,7 +38,14 @@ class InsuranceBotFlow(Flow):
                         result = {"operation": "read", "table": "claims", "policy_number": policy_number, "query": user_input}
                     else:
                         result = {"operation": "unknown", "query": user_input}
-                # Add recognition for create operations
+                elif "update" in user_input_lower:
+                    match = re.search(r"update claim (\d+) status to (\w+)", user_input)
+                    if match:
+                        claim_id = int(match.group(1))
+                        status = match.group(2)
+                        result = {"operation": "update", "table": "claims", "claim_id": claim_id, "status": status, "query": user_input}
+                    else:
+                        result = {"operation": "unknown", "query": user_input}
                 elif "create" in user_input_lower or "new" in user_input_lower or "add" in user_input_lower:
                     try:
                         # Extract the JSON-like data from the input
@@ -57,12 +64,20 @@ class InsuranceBotFlow(Flow):
                     except Exception as e:
                         print(f"Error parsing claim data: {e}")
                         result = {"operation": "unknown", "query": user_input}
+                elif "delete" in user_input_lower:
+                    match = re.search(r"delete claim with id (\d+)", user_input)
+                    if match:
+                        claim_id = int(match.group(1))
+                        result = {"operation": "delete", "table": "claims", "claim_id": claim_id, "query": user_input}
+                    else:
+                        result = {"operation": "unknown", "query": user_input}
+                elif any(keyword in user_input_lower for keyword in ['policy', 'coverage', 'terms', 'conditions', 'premium', 'deductible']):
+                    result = {"operation": "policy_info", "query": user_input}
                 else:
                     result = {"operation": "unknown", "query": user_input}
             print("Data Extracted:", result)
             return result
         return None
-
 
     @listen(extract_data)
     def crud_operator(self, extracted_data):
@@ -77,6 +92,8 @@ class InsuranceBotFlow(Flow):
         operation = extracted_data.get("operation", "read")
         table = extracted_data.get("table", "claims")
         policy_number = extracted_data.get("policy_number")
+        claim_id = extracted_data.get("claim_id")
+        status = extracted_data.get("status")
         
         try:
             conn = sqlite3.connect("insurance.db")
@@ -114,6 +131,44 @@ class InsuranceBotFlow(Flow):
                     "message": f"Claim created successfully with ID: {new_id}",
                     "claim_id": new_id
                 }
+            
+            elif operation == "update" and table == "claims":
+                if claim_id and status:
+                    cursor.execute("SELECT * FROM claims WHERE id = ?", (claim_id,))
+                    if cursor.fetchone():
+                        cursor.execute(
+                            "UPDATE claims SET status = ? WHERE id = ?",
+                            (status, claim_id)
+                        )
+                        conn.commit()
+                        return {
+                            "status": "success", 
+                            "message": f"Claim {claim_id} status updated to {status}"
+                        }
+                    else:
+                        return {"status": "error", "message": f"Claim {claim_id} does not exist"}
+                else:
+                    return {"status": "error", "message": "Missing claim ID or status for update"}
+            
+            elif operation == "delete" and table == "claims":
+                if claim_id:
+                    cursor.execute("SELECT * FROM claims WHERE id = ?", (claim_id,))
+                    if cursor.fetchone():
+                        cursor.execute("DELETE FROM claims WHERE id = ?", (claim_id,))
+                        conn.commit()
+                        return {
+                            "status": "success", 
+                            "message": f"Claim {claim_id} deleted successfully"
+                        }
+                    else:
+                        return {"status": "error", "message": f"Claim {claim_id} does not exist"}
+                else:
+                    return {"status": "error", "message": "Missing claim ID for deletion"}
+            
+            elif operation == "policy_info":
+                # Fetch policy information from a database or knowledge base
+                # For demonstration, return a static message
+                return {"status": "success", "message": "Policy information is available upon request."}
             else:
                 return {"status": "error", "message": f"Unsupported operation: {operation}"}
                 
