@@ -1,56 +1,90 @@
-# {{crew_name}} Crew
+# InsuranceBotFlow
 
-Welcome to the {{crew_name}} Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+A CrewAI-powered insurance chatbot that processes user queries related to insurance claims.
 
-## Installation
+## Overview
 
-Ensure you have Python >=3.10 <3.13 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+InsuranceBotFlow is an AI-powered chatbot application built with CrewAI that helps users interact with their insurance claims data. The system can process natural language queries to retrieve claim information and is designed to be extensible for additional insurance-related operations.
 
-First, if you haven't already, install uv:
+## Features
 
-```bash
-pip install uv
-```
+- **Insurance-Specific Interactions**: Processes only insurance-related queries.
+- **Claim Management**: View existing claims in the database.
+- **Policy Lookup**: Check claim details by policy number.
+- **Natural Language Processing**: Understands user intent through AI-powered analysis.
 
-Next, navigate to your project directory and install the dependencies:
+## Current Capabilities
 
-(Optional) Lock the dependencies and install them by using the CLI command:
-```bash
-crewai install
-```
+- **List All Claims**: Returns all claims in the database.
+- **Check Specific Claims**: Retrieves claim details by policy number.
+- **Filter Non-Insurance Queries**: Rejects queries not related to insurance.
 
-### Customizing
+## Database Structure
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+The application uses an SQLite database (`insurance.db`) with a `claims` table that contains:
 
-- Modify `src/redemption_flow/config/agents.yaml` to define your agents
-- Modify `src/redemption_flow/config/tasks.yaml` to define your tasks
-- Modify `src/redemption_flow/crew.py` to add your own logic, tools and specific args
-- Modify `src/redemption_flow/main.py` to add custom inputs for your agents and tasks
+- `id`
+- `policy_number`
+- `claim_amount`
+- `claim_date`
+- `status`
 
-## Running the Project
+## Usage Examples
 
-To kickstart your flow and begin execution, run this from the root folder of your project:
+### Working Queries
 
-```bash
-crewai run
-```
+- "list all claims"
+- "check claim with policy number: POL456"
 
-This command initializes the redemption_flow Flow as defined in your configuration.
+### Non-Working Queries (Need Implementation)
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+- "create new claim as {'policy_number': 'POL789', 'claim_amount': 750.0, 'claim_date': '2025-03-25', 'status': 'pending'}"
+- "check policy number POL456" (currently returns "Unsupported operation: unknown")
 
-## Understanding Your Crew
+## Project Structure
 
-The redemption_flow Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+- `main.py`: Contains the `InsuranceBotFlow` class and main application logic.
+- `chatbot_crew.py`: Defines the CrewAI agents and tasks for processing user queries.
+- `config/`: Configuration files for agents and tasks.
+- `insurance.db`: SQLite database storing claim information.
 
-## Support
+## Future Enhancements
 
-For support, questions, or feedback regarding the {{crew_name}} Crew or crewAI.
+- Implement create, update, and delete operations for claims.
+- Handle policy-related questions.
+- Improve natural language understanding.
 
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
+## Requirements
 
-Let's create wonders together with the power and simplicity of crewAI.
+- Python 3.8+
+- CrewAI
+- SQLite3
+- OpenAI API key (for the LLM)
+
+## Setup
+
+1. Clone the repository.
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Set up environment variables:
+   - Create a .env file with your OpenAI API key and model configuration. For example:
+     ```bash
+     OPENAI_API_KEY=your_api_key_here
+     MODEL_NAME=gpt-3.5-turbo
+     ```
+   - Replace your_api_key_here with your actual OpenAI API key and adjust MODEL_NAME to your preferred model (e.g., gpt-3.5-turbo or gpt-4).
+4. Initialize the database:
+   - Run the database initialization script if provided (e.g., python init_db.py). Check the project documentation or code for exact instructions.
+5. Run the application:
+   ```bash
+   crewai run
+   ```
+## Notes
+The current implementation may display Pydantic V1 style deprecation warnings. To suppress these, add the following code to your project:
+  ```python
+  import warnings
+  from pydantic import PydanticDeprecatedSince20
+  warnings.filterwarnings("ignore", category=PydanticDeprecatedSince20)
+  ```
