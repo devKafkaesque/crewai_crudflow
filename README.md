@@ -75,7 +75,7 @@ The application uses an SQLite database (`insurance.db`) with a `claims` table t
      MODEL_NAME=gpt-3.5-turbo
      ```
    - Replace your_api_key_here with your actual OpenAI API key and adjust MODEL_NAME to your preferred model (e.g., gpt-3.5-turbo or gpt-4).
-4. Initialize the database:
+4. Initialize and Reconfigure the database(according to requirements):
    - Run the database initialization script if provided (e.g., python init_db.py). Check the project documentation or code for exact instructions.
 5. Run the application:
    ```bash
