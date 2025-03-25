@@ -66,7 +66,7 @@ The application uses an SQLite database (`insurance.db`) with a `claims` table t
 1. Clone the repository.
 2. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
 3. Set up environment variables:
    - Create a .env file with your OpenAI API key and model configuration. For example:
